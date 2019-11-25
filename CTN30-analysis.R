@@ -1,134 +1,112 @@
 library(tidyverse)
 # import data and covariate imputation
-CTN30 <- readRDS("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/CTN30.rds")
+setwd("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/")
+source("ICAD-time-to-event.R")
+source("ICAD.R")
+CTN30 <- readRDS("CTN30.rds")
 CTN30$age[which(is.na(CTN30$age))] <- median(CTN30$age, na.rm = T)
 CTN30$BL[which(is.na(CTN30$BL))] <- FALSE
 CTN30 <- mutate(CTN30, strata = interaction(CTN30$heroin_history, CTN30$chronic_pain))
-pi = 0.5
-
-# retention outcome -------------------------------
-# specify outcome, treatment and covariates
-Y <- CTN30$complete1
-A <- as.numeric(CTN30$arm1 == "Enhanced")
-W <- select(CTN30, sex, age, BL, strata)
-
-# n and % missing
-n <- nrow(cbind(Y, A, W))
-CTN30_complete <- CTN30[complete.cases(cbind(Y, A, W)),]
-Y_complete <- Y[complete.cases(cbind(Y, A, W))]
-A_complete <- A[complete.cases(cbind(Y, A, W))]
-W_complete <- W[complete.cases(cbind(Y, A, W)),]
-n_complete <- nrow(CTN30_complete)
-missing_proportion <- 1 - n_complete/n
-
-# number of strata
-n_strata <- length(unique(CTN30$strata))
-
-# Unadjusted estimator
-unadj <- mean(Y_complete[A_complete==1]) - mean(Y_complete[A_complete==0])
-var_unadj <- var(Y_complete[A_complete==1])/pi + var(Y_complete[A_complete==0])/(1-pi)
-CI_unadj <- qnorm(c(0.025, 0.975), mean = unadj, sd =  sqrt(var_unadj))
-
-# adjusted estimator
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-d1 <- data.frame(Y = Y_complete, A = 1, W_complete)
-d0 <- data.frame(Y = Y_complete, A = 0, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "binomial")
-p1 <- predict(glm.fit, d1, type = "response")
-p0 <- predict(glm.fit, d0, type = "response")
-adj <- mean(p1) - mean(p0)
-Y.1 <- Y_complete[A_complete==1]
-Y.0 <- Y_complete[A_complete==0]
-r.1 <- Y.1 - p0[A_complete==1] * pi - p1[A_complete==1] * (1 - pi)
-r.0 <- Y.0 - p0[A_complete==0] * pi - p1[A_complete==0] * (1 - pi)
-var_adj <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_adj <- qnorm(c(0.025, 0.975), mean = adj, sd =  sqrt(var_adj))
-
-# doubly-robust estimator
-M <- !is.na(Y)
-propensity.fit <- glm(M ~ ., data = data.frame(M, A, W), family = "binomial")
-propensity_score <- predict(propensity.fit, type = "response")
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "binomial",, weights = 1/propensity_score[M==1])
-p1 <- predict(glm.fit, data.frame(A = 1, W), type = "response")
-p0 <- predict(glm.fit, data.frame(A = 0, W), type = "response")
-e1 <- predict(propensity.fit, data.frame(A = 1, W), type = "response")
-e0 <- predict(propensity.fit, data.frame(A = 0, W), type = "response")
-dr <- mean(p1) - mean(p0)
-Y.1 <- ifelse(is.na(Y[A==1]), 0, Y[A==1])
-Y.0 <- ifelse(is.na(Y[A==0]), 0, Y[A==0])
-M.1 <- M[A==1]
-M.0 <- M[A==0]
-r.1 <- M.1 * (Y.1 - p1[A==1]) / e1[A==1] + pi * p1[A==1] - pi * p0[A==1]
-r.0 <- M.0 * (Y.0 - p0[A==0]) / e0[A==0] - (1-pi) * p1[A==0] + (1-pi) * p0[A==0]
-var_dr <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_dr <- qnorm(c(0.025, 0.975), mean = dr, sd =  sqrt(var_dr))
-
-rbind(cbind(unadj, t(CI_unadj)),
-cbind(adj, t(CI_adj)),
-cbind(dr, t(CI_dr))) %>% round(2)
-
+pi <- 0.5
 
 # average lab results -------------------
-# specify outcome, treatment and covariates
-Y <- apply(CTN30[,8:12], 1, function(x){mean(x, na.rm = T)})
-Y <- ifelse(apply(CTN30[,8:12], 1, function(x){sum(is.na(x)) > 1}), NA, Y)
+# handling missing data: regard all missing as positive lab results
+CTN30_1 <- CTN30
+CTN30_1[, 8:12][is.na(CTN30[,8:12])] <- 1
+Y <- apply(CTN30_1[,8:12], 1, mean)
 A <- as.numeric(CTN30$arm1 == "Enhanced")
-W <- select(CTN30, sex, age, BL, strata)
-
-# n and % missing
-CTN30 <- cbind(Y, A, W)
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
 n <- nrow(CTN30)
-CTN30_complete <- CTN30[complete.cases(CTN30),]
-Y_complete <- Y[complete.cases(CTN30)]
-A_complete <- A[complete.cases(CTN30)]
-W_complete <- W[complete.cases(CTN30),]
-n_complete <- nrow(CTN30_complete)
-missing_proportion <- 1 - n_complete/n
+missing_proportion <- 1 - sum(is.na(Y))/length(Y)
+n_strata <- length(unique(Strata))
 
-# number of strata
-n_strata <- length(unique(CTN30$strata))
+ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(3)
 
-# Unadjusted estimator
-unadj <- mean(Y_complete[A_complete==1]) - mean(Y_complete[A_complete==0])
-var_unadj <- var(Y_complete[A_complete==1])/pi + var(Y_complete[A_complete==0])/(1-pi)
-CI_unadj <- qnorm(c(0.025, 0.975), mean = unadj, sd =  sqrt(var_unadj))
+# handling missing data: missing if one missed more than 2 weeks
+Y <- apply(CTN30[,8:12], 1, function(x){mean(x, na.rm = T)})
+missing <- (is.na(CTN30[,8]) & is.na(CTN30[,9])) + is.na(CTN30[,10]) + is.na(CTN30[,11]) + is.na(CTN30[,12])
+Y <- ifelse(missing > 2, NA, Y)
+A <- as.numeric(CTN30$arm1 == "Enhanced")
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
+n <- nrow(CTN30)
+missing_proportion <- sum(is.na(Y))/length(Y)
+n_strata <- length(unique(Strata))
 
-# adjusted estimator
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-d1 <- data.frame(Y = Y_complete, A = 1, W_complete)
-d0 <- data.frame(Y = Y_complete, A = 0, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "gaussian")
-p1 <- predict(glm.fit, d1, type = "response")
-p0 <- predict(glm.fit, d0, type = "response")
-adj <- mean(p1) - mean(p0)
-Y.1 <- Y_complete[A_complete==1]
-Y.0 <- Y_complete[A_complete==0]
-r.1 <- Y.1 - p0[A_complete==1] * pi - p1[A_complete==1] * (1 - pi)
-r.0 <- Y.0 - p0[A_complete==0] * pi - p1[A_complete==0] * (1 - pi)
-var_adj <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_adj <- qnorm(c(0.025, 0.975), mean = adj, sd =  sqrt(var_adj))
+ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(2)
 
-# doubly-robust estimator
-M <- !is.na(Y)
-propensity.fit <- glm(M ~ ., data = data.frame(M, A, W), family = "gaussian")
-propensity_score <- predict(propensity.fit, type = "response")
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "gaussian", weights = 1/propensity_score[M==1])
-p1 <- predict(glm.fit, data.frame(A = 1, W), type = "response")
-p0 <- predict(glm.fit, data.frame(A = 0, W), type = "response")
-e1 <- predict(propensity.fit, data.frame(A = 1, W), type = "response")
-e0 <- predict(propensity.fit, data.frame(A = 0, W), type = "response")
-dr <- mean(p1) - mean(p0)
-Y.1 <- ifelse(is.na(Y[A==1]), 0, Y[A==1])
-Y.0 <- ifelse(is.na(Y[A==0]), 0, Y[A==0])
-M.1 <- M[A==1]
-M.0 <- M[A==0]
-r.1 <- M.1 * (Y.1 - p1[A==1]) / e1[A==1] + pi * p1[A==1] - pi * p0[A==1]
-r.0 <- M.0 * (Y.0 - p0[A==0]) / e0[A==0] - (1-pi) * p1[A==0] + (1-pi) * p0[A==0]
-var_dr <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_dr <- qnorm(c(0.025, 0.975), mean = dr, sd =  sqrt(var_dr))
+# retention outcome -------------------------------
+Y <- CTN30$complete1
+A <- as.numeric(CTN30$arm1 == "Enhanced")
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
+n <- nrow(CTN30)
+missing_proportion <- sum(is.na(Y))/length(Y)
+n_strata <- length(unique(Strata))
 
-rbind(cbind(unadj, t(CI_unadj)),
-      cbind(adj, t(CI_adj)),
-      cbind(dr, t(CI_dr))) %>% round(2)
+# inference
+ICAD(Y,A, Strata, W, pi = pi, family = "binomial") %>% round(2)
+
+
+
+
+# survival outcome: time-to-first-negative-lab-result ------
+# Y: time to first negative lab result
+# M: time to first missing visit
+Y <- apply(CTN30[,8:12], 1, function(x){which(x == 0)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(CTN30[,8:12], 1, function(x){which(is.na(x))[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN30$arm1 == "Enhanced")
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 5)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 5)
+survplot(KM, conf = "none", xlim = c(0,7), time.inc = 1)
+
+
+# survival analysis-------
+# Y: time to first two consecutive negative lab result
+# M: time to first two consecutive missing visits
+event_table <- matrix(NA, nrow = nrow(CTN30), ncol = 4)
+censor_table <- matrix(NA, nrow = nrow(CTN30), ncol = 4)
+for(j in 1:4){
+  temp_event <- CTN30[,7+j] + CTN30[8+j]
+  censor_event <- is.na(CTN30[,7+j]) + is.na(CTN30[,8+j])
+  event_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 0, 1, 0)
+  censor_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 2, 1, 0)
+}
+Y <- apply(event_table, 1, function(x){which(x == 1)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(censor_table, 1, function(x){which(x == 1)[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN30$arm1 == "Enhanced")
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 4)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 4)
+
+# survival outcome: time-to-first-negative-lab-result ------
+# Y: time to first two consecutive negative lab result
+# M: time to first missing visit
+event_table <- matrix(NA, nrow = nrow(CTN30), ncol = 4)
+for(j in 1:4){
+  temp_event <- CTN30[,7+j] + CTN30[8+j]
+  event_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 0, 1, 0)
+}
+Y <- apply(event_table, 1, function(x){which(x == 1)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(CTN30[,8:12], 1, function(x){which(is.na(x))[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN30$arm1 == "Enhanced")
+Strata <- as.factor(CTN30$strata)
+W <- select(CTN30, sex, age, BL)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 5)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 5)

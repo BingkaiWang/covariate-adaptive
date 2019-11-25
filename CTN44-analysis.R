@@ -1,112 +1,101 @@
 library(tidyverse)
 # import data and covariate imputation
-CTN44 <- readRDS("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/CTN44.rds")
+setwd("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/")
+source("ICAD-time-to-event.R")
+source("ICAD.R")
+CTN44 <- readRDS("CTN44.rds")
 CTN44$`0`[which(is.na(CTN44$`0`))] <- TRUE
-pi = 0.5
-
-# retention outcome -------------------------------
-# specify outcome, treatment and covariates
-Y <- CTN44$complete
-A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
-W <- select(CTN44, age, gender, strata, `0`)
-
-# n and % missing
-n <- nrow(cbind(Y, A, W))
-CTN44_complete <- CTN44[complete.cases(cbind(Y, A, W)),]
-Y_complete <- Y[complete.cases(cbind(Y, A, W))]
-A_complete <- A[complete.cases(cbind(Y, A, W))]
-W_complete <- W[complete.cases(cbind(Y, A, W)),]
-n_complete <- nrow(CTN44_complete)
-missing_proportion <- 1 - n_complete/n
-
-# number of strata
-n_strata <- length(unique(CTN44$strata))
-
-# Unadjusted estimator
-unadj <- mean(Y_complete[A_complete==1]) - mean(Y_complete[A_complete==0])
-var_unadj <- var(Y_complete[A_complete==1])/pi + var(Y_complete[A_complete==0])/(1-pi)
-CI_unadj <- qnorm(c(0.025, 0.975), mean = unadj, sd =  sqrt(var_unadj))
-
-# adjusted estimator
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-d1 <- data.frame(Y = Y_complete, A = 1, W_complete)
-d0 <- data.frame(Y = Y_complete, A = 0, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "binomial")
-p1 <- predict(glm.fit, d1, type = "response")
-p0 <- predict(glm.fit, d0, type = "response")
-adj <- mean(p1) - mean(p0)
-Y.1 <- Y_complete[A_complete==1]
-Y.0 <- Y_complete[A_complete==0]
-r.1 <- Y.1 - p0[A_complete==1] * pi - p1[A_complete==1] * (1 - pi)
-r.0 <- Y.0 - p0[A_complete==0] * pi - p1[A_complete==0] * (1 - pi)
-var_adj <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_adj <- qnorm(c(0.025, 0.975), mean = adj, sd =  sqrt(var_adj))
-
-rbind(cbind(unadj, t(CI_unadj)),
-      cbind(adj, t(CI_adj))) %>% round(2)
-
-
+pi <- 0.5
 
 # average lab results -------------------
-# specify outcome, treatment and covariates
-Y <- apply(CTN44[,7:30], 1, function(x){mean(x, na.rm = T)})
-Y <- ifelse(apply(CTN44[,7:30], 1, function(x){sum(is.na(x)) > 11}), NA, Y)
+# handling missing data: regard all missing as positive lab results
+CTN44_1 <- CTN44
+CTN44_1[, 7:30][is.na(CTN44[,7:30])] <- 1
+Y <- apply(CTN44_1[,7:30], 1, mean)
 A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
-W <- select(CTN44, age, gender, strata, `0`)
-
-# n and % missing
-CTN44 <- cbind(Y, A, W)
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, gender, `0`)
 n <- nrow(CTN44)
-CTN44_complete <- CTN44[complete.cases(CTN44),]
-Y_complete <- Y[complete.cases(CTN44)]
-A_complete <- A[complete.cases(CTN44)]
-W_complete <- W[complete.cases(CTN44),]
-n_complete <- nrow(CTN44_complete)
-missing_proportion <- 1 - n_complete/n
+n_strata <- length(unique(Strata))
 
-# number of strata
-n_strata <- length(unique(CTN44$strata))
+ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(2)
 
-# Unadjusted estimator
-unadj <- mean(Y_complete[A_complete==1]) - mean(Y_complete[A_complete==0])
-var_unadj <- var(Y_complete[A_complete==1])/pi + var(Y_complete[A_complete==0])/(1-pi)
-CI_unadj <- qnorm(c(0.025, 0.975), mean = unadj, sd =  sqrt(var_unadj))
+# handling missing data: missing if one missed more than 6 weeks
+Y <- apply(CTN44[,7:30], 1, function(x){mean(x, na.rm = T)})
+missing <- (is.na(CTN44[,seq(7, 30, by = 2)]) * is.na(CTN44[,seq(8, 30, by = 2)])) %>% apply(1,sum)
+Y <- ifelse(missing > 6, NA, Y)
+A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, gender, `0`)
 
-# adjusted estimator
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-d1 <- data.frame(Y = Y_complete, A = 1, W_complete)
-d0 <- data.frame(Y = Y_complete, A = 0, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "gaussian")
-p1 <- predict(glm.fit, d1, type = "response")
-p0 <- predict(glm.fit, d0, type = "response")
-adj <- mean(p1) - mean(p0)
-Y.1 <- Y_complete[A_complete==1]
-Y.0 <- Y_complete[A_complete==0]
-r.1 <- Y.1 - p0[A_complete==1] * pi - p1[A_complete==1] * (1 - pi)
-r.0 <- Y.0 - p0[A_complete==0] * pi - p1[A_complete==0] * (1 - pi)
-var_adj <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_adj <- qnorm(c(0.025, 0.975), mean = adj, sd =  sqrt(var_adj))
+ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(2)
 
-# doubly-robust estimator
-M <- !is.na(Y)
-propensity.fit <- glm(M ~ ., data = data.frame(M, A, W), family = "gaussian")
-propensity_score <- predict(propensity.fit, type = "response")
-d <- data.frame(Y = Y_complete, A = A_complete, W_complete)
-glm.fit <- glm(Y~ ., data = d, family = "gaussian", weights = 1/propensity_score[M==1])
-p1 <- predict(glm.fit, data.frame(A = 1, W), type = "response")
-p0 <- predict(glm.fit, data.frame(A = 0, W), type = "response")
-e1 <- predict(propensity.fit, data.frame(A = 1, W), type = "response")
-e0 <- predict(propensity.fit, data.frame(A = 0, W), type = "response")
-dr <- mean(p1) - mean(p0)
-Y.1 <- ifelse(is.na(Y[A==1]), 0, Y[A==1])
-Y.0 <- ifelse(is.na(Y[A==0]), 0, Y[A==0])
-M.1 <- M[A==1]
-M.0 <- M[A==0]
-r.1 <- M.1 * (Y.1 - p1[A==1]) / e1[A==1] + pi * p1[A==1] - pi * p0[A==1]
-r.0 <- M.0 * (Y.0 - p0[A==0]) / e0[A==0] - (1-pi) * p1[A==0] + (1-pi) * p0[A==0]
-var_dr <- var(r.1)/pi + var(r.0)/(1-pi)
-CI_dr <- qnorm(c(0.025, 0.975), mean = dr, sd =  sqrt(var_dr))
+# retention outcome -------------------------------
+Y <- CTN44$complete
+A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, gender, `0`)
+n <- nrow(CTN44)
+missing_proportion <- sum(is.na(Y))/length(Y)
+n_strata <- length(unique(Strata))
 
-rbind(cbind(unadj, t(CI_unadj)),
-      cbind(adj, t(CI_adj)),
-      cbind(dr, t(CI_dr))) %>% round(2)
+ICAD(Y,A, Strata, W, pi = pi, family = "binomial") %>% round(2)
+
+
+# survival outcome: time-to-first-negative-lab-result ------
+# Y: time to first negative lab result
+# M: time to first missing visit
+Y <- apply(CTN44[,7:30], 1, function(x){which(x == 0)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(CTN44[,7:30], 1, function(x){which(is.na(x))[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, `0`)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 6)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 6)
+
+# survival analysis-------
+# Y: time to first two consecutive negative lab result
+# M: time to first two consecutive missing visits
+event_table <- matrix(NA, nrow = nrow(CTN44), ncol = 23)
+censor_table <- matrix(NA, nrow = nrow(CTN44), ncol = 23)
+for(j in 1:23){
+  temp_event <- CTN44[,6+j] + CTN44[7+j]
+  censor_event <- is.na(CTN44[,6+j]) + is.na(CTN44[,7+j])
+  event_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 0, 1, 0)
+  censor_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 2, 1, 0)
+}
+Y <- apply(event_table, 1, function(x){which(x == 1)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(censor_table, 1, function(x){which(x == 1)[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, `0`)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 23)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 23)
+
+# survival analysis-------
+# Y: time to first two consecutive negative lab result
+# M: time to first missing visits
+event_table <- matrix(NA, nrow = nrow(CTN44), ncol = 23)
+for(j in 1:23){
+  temp_event <- CTN44[,6+j] + CTN44[7+j]
+  event_table[,j] <- ifelse(!is.na(temp_event) & temp_event == 0, 1, 0)
+}
+Y <- apply(event_table, 1, function(x){which(x == 1)[1]})
+Y[is.na(Y)] <- 999
+M <- apply(CTN44[,7:30], 1, function(x){which(is.na(x))[1]})
+M[is.na(M)] <- 999
+E <- pmin(Y, M)
+C <- Y <= M
+A <- as.numeric(CTN44$arm == "Therapeutic Education System (TES)")
+Strata <- as.factor(CTN44$strata)
+W <- select(CTN44, age, `0`)
+ICAD_tte(E, C, A, Strata, W, pi = 0.5, tau = 10)
+ICAD_tte(E, C, A, Strata, W = NULL, pi = 0.5, tau = 10)
