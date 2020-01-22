@@ -1,8 +1,8 @@
 library(tidyverse)
 # import data and imputation for covariates
 setwd("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/")
-source("ICAD.R")
-CTN03 <- readRDS("CTN03.rds")
+source("R/ICAD.R")
+CTN03 <- readRDS("data/CTN03.rds")
 CTN03$baseline.OPI[which(is.na(CTN03$baseline.OPI))] <- median(CTN03$baseline.OPI, na.rm = T)
 CTN03$COWS[which(is.na(CTN03$COWS))] <- median(CTN03$COWS, na.rm = T)
 CTN03$ARSW[which(is.na(CTN03$ARSW))] <- median(CTN03$ARSW, na.rm = T)

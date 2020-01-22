@@ -10,7 +10,7 @@
 #' 
 #' @import tidyverse
 #'
-#' @return
+#' @return point estimate and its estimated variance
 #' @export
 #'
 #' @examples

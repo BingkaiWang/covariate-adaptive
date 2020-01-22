@@ -1,4 +1,16 @@
 # Inference under Covariate-Adaptive Design (ICAD) with continuous or binary outcomes
+#'
+#' @param Y outcome
+#' @param A binary treatment indicator
+#' @param Strata stratification variable (factor)
+#' @param W baseline variables
+#' @param pi target proportion of people getting treatment
+#' @param family "gaussian" for continuous outcomes and "binomial" for binary outcomes
+#'
+#' @return the unadjusted, adjusted and DR-WLS estimators with variance and 95% confidence intervals.
+#' @export
+#'
+#' @examples
 ICAD <- function(Y, A, Strata, W = NULL, pi = 0.5, family = "gaussian"){
   if(any(is.na(A))){
     stop("No missing treatment is allowed.")
