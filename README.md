@@ -10,11 +10,11 @@ For details, please see the paper [here](https://arxiv.org/abs/1910.13954).
 
 ## Functions
 
-- R/ICAD.R Inference under Covariate-Adaptive Design (ICAD) with continuous or binary outcomes using the ANCOVA estimator, standardized logistic regression estimator, and the DR-WLS estimator depending on the outcome time and where missing outcomes present.
+- __R/ICAD.R__ Inference under Covariate-Adaptive Design (ICAD) with continuous or binary outcomes using the ANCOVA estimator, standardized logistic regression estimator, and the DR-WLS estimator depending on the outcome time and where missing outcomes present.
 
-- R/ICAD-km.R  Inference of survival functions under Covariate-Adaptive Design with time-to-event outcomes using the Kaplan-Meier estimator.
+- __R/ICAD-km.R__  Inference of survival functions under Covariate-Adaptive Design with time-to-event outcomes using the Kaplan-Meier estimator.
 
-- R/ICAD-AIPW.R Inference of the restricted mean survival time under Covariate-Adaptive Design (ICAD) with time-to-event outcomes using the AIPW estimator.
+- __R/ICAD-AIPW.R__ Inference of the restricted mean survival time under Covariate-Adaptive Design (ICAD) with time-to-event outcomes using the AIPW estimator.
 
 ## Code of data application
 
