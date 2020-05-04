@@ -54,7 +54,8 @@ eCAD <- function(Y, A, Strata, W = NULL, pi = 0.5, family = "gaussian", method){
     r.0 <- Y.0 - p0[A==0] * pi - p1[A==0] * (1 - pi)
     tilde_var <- var(r.1)/pi + var(r.0)/(1-pi)
     E.S <- map_dbl(unique(Strata), ~mean(((2*A-1)*r)[Strata == .]))
-    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * var(E.S)
+    p.S <- map_dbl(unique(Strata), ~mean(Strata == .))
+    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * sum(p.S * E.S^2)
     return(c(est = est, var = var/n, 
            CI.lower = qnorm(0.025, mean = est, sd =  sqrt(var/n)),
            CI.upper = qnorm(0.975, mean = est, sd =  sqrt(var/n))))
@@ -75,7 +76,8 @@ eCAD <- function(Y, A, Strata, W = NULL, pi = 0.5, family = "gaussian", method){
     r.0 <- Y.0 - p0[A==0] * pi - p1[A==0] * (1 - pi)
     tilde_var <- var(r.1)/pi + var(r.0)/(1-pi)
     E.S <- map_dbl(unique(Strata), ~mean(((2*A-1)*r)[Strata == .]))
-    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * var(E.S)
+    p.S <- map_dbl(unique(Strata), ~mean(Strata == .))
+    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * sum(p.S * E.S^2)
     return(c(est = est, var = var/n, 
            CI.lower = qnorm(0.025, mean = est, sd =  sqrt(var/n)),
            CI.upper = qnorm(0.975, mean = est, sd =  sqrt(var/n))))
@@ -117,7 +119,8 @@ eCAD <- function(Y, A, Strata, W = NULL, pi = 0.5, family = "gaussian", method){
                        X %*% t(c_1) * (M/propensity_score * (MY - pA)) - 
                        X %*% t(c_2) * (M - propensity_score) - est)
     E.S <- map_dbl(unique(Strata), ~mean(((2*A-1)*M*(MY-pA)/propensity_score)[Strata == .]))
-    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * var(E.S)
+    p.S <- map_dbl(unique(Strata), ~mean(Strata == .))
+    var <- tilde_var - (1-2*pi)^2/pi/(1-pi) * sum(p.S * E.S^2)
     return(c(est = est, var = var/n, 
              CI.lower = qnorm(0.025, mean = est, sd =  sqrt(var/n)),
              CI.upper = qnorm(0.975, mean = est, sd =  sqrt(var/n))))

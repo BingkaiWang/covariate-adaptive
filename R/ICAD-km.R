@@ -28,7 +28,8 @@ ICAD_km <- function(U, delta, strata, pi, tau){
       ER_S[s,t] <- mean(R[strata == unique(strata)[s],t])
     }
   }
-  std <- sqrt(apply(R, 2, var)/pi - apply(ER_S, 2, function(x){mean((x-mean(x))^2)})) * S / sqrt(nrow(d))
+  p.S <- map_dbl(unique(strata), ~mean(strata == .))
+  std <- sqrt(apply(R, 2, var)/pi - (1-pi)/pi * map_dbl(1:ncol(ER_S), ~sum(p.S * ER_S[,.]^2))) * S / sqrt(nrow(d))
   std_iid <- sqrt(apply(R, 2, var)/pi) * S / sqrt(nrow(d))
   # stdS <- sqrt(cumsum(dlambda/(1-dlambda)/map_dbl(1:tau, ~sum(d$U >= .))) * S^2 / pi)
   return(list(S = S, std = std, std_iid = std_iid))

@@ -131,7 +131,8 @@ ICAD_tte <- function(E, C, A, Strata, W = NULL, pi = 0.5, tau = NULL){
     }
   }
   E.S <- map_dbl(unique(Strata), ~mean(temp[Strata == .]))
-  V <- tilde_V - (1-2*pi)^2/pi/(1-pi) * var(E.S)
+  p.S <- map_dbl(unique(Strata), ~mean(Strata == .))
+  V <- tilde_V - (1-2*pi)^2/pi/(1-pi) * sum(p.S * E.S^2)
   
   return(c(est = mean(est), var = V))
 }
