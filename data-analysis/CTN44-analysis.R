@@ -82,12 +82,12 @@ fit_CTN44_1s$upper <- c(qnorm(0.975, fit_1$S, fit_1$std), NA)
 variance_reduction_1 <- round(1-(fit_1$std/fit_1$std_iid)^2,2)
 p <- ggsurvplot(list(fit1 = fit_CTN44_1, fit2 =fit_CTN44_1s), data = CTN44_1, 
            combine = T, conf.int = T, xlim = c(0,12), conf.int.style = "step",
-           legend.title = "", legend.labs = c("Stratification not ignored", "Stratification ignored"),
+           legend.title = "", legend.labs = c("Stratification ignored", "Stratification not ignored"),
            break.x.by = 1, font.legend = 10, palette = c("blue","black"), # conf.int.fill = 1,
            title = "NIDA-CTN-0044 Treatment group", font.title = 12, font.xlab = 10, font.ylab = 10)
 d_text <- data.frame(x = (1:12) + 0.2, y = 0, text = paste0(round(variance_reduction_1, 2) * 100, "%")[1:12])
 p1 <- p$plot + geom_text(aes(x = x, y = y, label = text), size = 3.5, data = d_text) +
-  annotate(geom="text", x=2, y=0.1, label="Variance Reduction", size = 4)
+  annotate(geom="text", x=2.2, y=0.1, label="Variance Reduction", size = 4)
 # ggsave("CTN44-treatment.png", print(p), width = 10, height = 7)
 
 # KM estimator of the control arm
@@ -101,15 +101,15 @@ fit_CTN44_0s$lower <- c(qnorm(0.025, fit_0$S, fit_0$std), NA)
 fit_CTN44_0s$upper <- c(qnorm(0.975, fit_0$S, fit_0$std), NA)
   
 variance_reduction_0 <- round(1-(fit_0$std/fit_0$std_iid)^2,2)
-p <- gggsurvplot(list(fit1 = fit_CTN44_0, fit2 =fit_CTN44_0s), data = CTN44_0, 
+p <- ggsurvplot(list(fit1 = fit_CTN44_0, fit2 =fit_CTN44_0s), data = CTN44_0, 
            combine = T, conf.int = T, xlim = c(0,12), conf.int.style = "step", 
            # conf.int.linetype = c("dashed", "dotted"),
-           legend.title = "", legend.labs = c("Stratification not ignored", "Stratification ignored"),
+           legend.title = "", legend.labs = c("Stratification ignored", "Stratification not ignored"),
            break.x.by = 1, font.legend = 10, palette = c("blue","black"),
            title = "NIDA-CTN-0044 Control group", font.title = 12, font.xlab = 10, font.ylab = 10)
 d_text <- data.frame(x = (1:12) + 0.2, y = 0, text = paste0(round(variance_reduction_0, 2) * 100, "%")[1:12])
 p0 <- p$plot + geom_text(aes(x = x, y = y, label = text), size = 3.5, data = d_text) +
-  annotate(geom="text", x=2, y=0.1, label="Variance Reduction", size = 4)
+  annotate(geom="text", x=2.2, y=0.1, label="Variance Reduction", size = 4)
 
 pp <- plot_grid(p1, p0, ncol = 2, labels = c("A", "B"))
 save_plot(filename = "CTN44-combined.png",plot = pp, base_aspect_ratio = 2.2)
