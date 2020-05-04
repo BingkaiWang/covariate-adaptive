@@ -1,5 +1,21 @@
-# covariate-adaptive
+# R functions for model-robust inference for clinical trials using stratified randomization and covariate adjustment
 
-This repo stores the code for the paper "Model-Robust Inference for Clinical Trials that Improve Precision by Stratified Randomization and Adjustment for Additional Baseline Variables", which can be accessed [here](https://arxiv.org/abs/1910.13954).
+## Overview
 
-The R folder cotains three functions, which are used for estimation and inference under different settings. The "ICAD" function is for binary or continuous outcomes. The "ICAD_tte" function is to estimate restricted mean survival time for time-to-event outcomes. The "ICAD-km" function is to calculate the Kaplan-Meier estimator in survival analysis.
+This repo stores R functions that can caculate point estimate and variance of the population average treatment effect under stratified permuated block randomization (or the biased-coin covariate-adaptive design) with adjustment for baseline variables. 
+
+The estimators covered in this repo are the ANCOVA estimator for continuous outcomes, standardized logistic regression estimator for binary outcomes, the doubly-robust weighted-least-squared (DR-WLS) estimator for continuous outcomes with missing outcomes, the Kaplan-Meier esitmator of survival functions for time-to-event outcomes, and the augmented inverse probability weighted (AIPW) estiamtor of the restricted mean survival time for time-to-event outcomes.
+
+For details, please see the paper [here](https://arxiv.org/abs/1910.13954).
+
+## Functions
+
+- R/ICAD.R Inference under Covariate-Adaptive Design (ICAD) with continuous or binary outcomes using the ANCOVA estimator, standardized logistic regression estimator, and the DR-WLS estimator depending on the outcome time and where missing outcomes present.
+
+- R/ICAD-km.R  Inference of survival functions under Covariate-Adaptive Design with time-to-event outcomes using the Kaplan-Meier estimator.
+
+- R/ICAD-AIPW.R Inference of the restricted mean survival time under Covariate-Adaptive Design (ICAD) with time-to-event outcomes using the AIPW estimator.
+
+## Code of data application
+
+The R scripts under the "data-analysis" folder contain the code of data application in the [paper](https://arxiv.org/abs/1910.13954).
