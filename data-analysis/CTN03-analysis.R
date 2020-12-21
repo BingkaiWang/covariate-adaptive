@@ -1,6 +1,6 @@
 library(tidyverse)
 # import data and imputation for covariates
-setwd("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/")
+setwd("~/Dropbox/research/Clinical-trial/covariate-adaptive/Covariate-adaptive/")
 source("R/ICAD.R")
 CTN03 <- readRDS("data/CTN03.rds")
 CTN03$baseline.OPI[which(is.na(CTN03$baseline.OPI))] <- median(CTN03$baseline.OPI, na.rm = T)
@@ -21,7 +21,7 @@ missing_proportion <- sum(is.na(Y))/length(Y)
 n_strata <- length(unique(Strata))
 
 # inference
-ICAD(Y,A, Strata, W, pi = pi, family = "binomial") %>% round(2)
+ICAD(Y,A, Strata, W, pi = pi, family = "binomial") %>% round(3)
 
 
 # retention outcome -------------------------------

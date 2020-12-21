@@ -2,7 +2,7 @@ library(tidyverse)
 library(survival)
 library(survminer)
 # import data and covariate imputation
-setwd("~/Dropbox/research/clinical trial/covariate-adaptive/Covariate-adaptive/")
+setwd("~/Dropbox/research/Clinical-trial/covariate-adaptive/Covariate-adaptive/")
 source("R/ICAD-AIPW.R")
 source("R/ICAD.R")
 source("R/ICAD-km.R")
@@ -24,7 +24,7 @@ n <- nrow(CTN30)
 missing_proportion <- sum(is.na(Y))/length(Y)
 n_strata <- length(unique(Strata))
 
-ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(2)
+ICAD(Y,A, Strata, W, pi = pi, family = "gaussian") %>% round(3)
 
 # retention outcome -------------------------------
 Y <- CTN30$complete1
