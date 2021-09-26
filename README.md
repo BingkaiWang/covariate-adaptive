@@ -6,7 +6,7 @@ This repo stores R functions that can caculate point estimate and variance of th
 
 The estimators covered in this repo are the ANCOVA estimator for continuous outcomes, standardized logistic regression estimator for binary outcomes, the doubly-robust weighted-least-squared (DR-WLS) estimator for continuous outcomes with missing outcomes, the Kaplan-Meier esitmator of survival functions for time-to-event outcomes, and the augmented inverse probability weighted (AIPW) estiamtor of the restricted mean survival time for time-to-event outcomes.
 
-For details, please see the paper [here](https://arxiv.org/abs/1910.13954).
+For details, please see the paper [here](https://doi.org/10.1080/01621459.2021.1981338).
 
 ## Functions
 
